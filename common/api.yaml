@@ -1,0 +1,5 @@
+---
+api:
+  reboot_timeout: ${reboot_timeout}
+  encryption:
+    key: !secret api_encryption_key

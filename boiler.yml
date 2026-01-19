@@ -1,0 +1,144 @@
+substitutions:
+  device: boiler
+  name: "Frisquet Boiler"
+  reboot_timeout: 14d
+  update_interval: 60s
+  ota_password: "86d8d705bb585eaf7a68c592a025884c"
+
+esphome:
+  name: ${device}
+
+preferences:
+  flash_write_interval: 72h
+
+external_components:
+  - source: components
+  
+# I am using a Wemos D1 mini clone
+esp8266:
+  board: nodemcuv2
+  #restore_from_flash: True
+
+packages:
+  common: !include common/common.yaml
+  logger: !include common/logger.yaml
+  binary_sensors: !include common/binary_sensors.yaml
+  sensors: !include common/sensors.yaml
+  switches: !include common/switches.yaml
+  text_sensors: !include common/text_sensors.yaml
+
+logger:
+  baud_rate: 0
+  level: DEBUG
+  logs:
+    sensor: INFO
+    text_sensor: INFO
+
+sensor:
+  - platform: homeassistant
+    id: current_temperature
+    entity_id: sensor.0x983268fffe9e1305_temperature
+    unit_of_measurement: "°C"
+    filters:
+      - filter_out: nan
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 1
+      - heartbeat: 60s
+        
+  - platform: homeassistant
+    id: outdoor_temperature
+    entity_id: sensor.nancy_essey_airport_temperature
+    unit_of_measurement: "°C"
+    filters:
+      - filter_out: nan
+      - exponential_moving_average:
+          alpha: 0.3
+          send_every: 1
+      - heartbeat: 60s
+
+  - platform: frisquet_boiler
+    name: "Boiler temperature setting"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    type: FLOWTEMP
+
+  - platform: frisquet_boiler
+    name: "Boiler setting"
+    unit_of_measurement: "%"
+    icon: mdi:gauge
+    type: SETPOINT
+
+climate:
+  - platform: heat_curve_climate
+    id: boiler_climate
+    name: ${name}
+    sensor: current_temperature
+    outdoor_sensor: outdoor_temperature
+    default_target_temperature: 19
+    output: boiler_cmd
+
+    control_parameters:
+      slope: 1.45
+      shift: 0.5
+      kp: 1.5
+    output_parameters:
+      minimum_output: 0.1
+      maximum_output: 1
+      output_factor: 1.9
+      output_offset: -41
+
+    visual:
+      min_temperature: 7
+      max_temperature: 25
+      temperature_step: 
+        target_temperature: 0.5
+        current_temperature: 0.1
+      
+output:
+  - platform: frisquet_boiler
+    id: boiler_cmd
+    boiler_id: !secret boiler_id
+    pin:
+      number: D6
+
+switch:
+  - platform: heat_curve_climate
+    name: "Heat Required"
+
+  - platform: frisquet_boiler
+    test:
+      name: "Test mode"
+    pair:
+      name: "Pairing mode"
+
+api:
+  actions:
+    - action: set_boiler_setpoint
+      variables:
+        setpoint: int
+      then:
+        - output.set_level:
+            id: boiler_cmd
+            level: !lambda 'return setpoint / 100.0;'
+
+    - action: set_boiler_mode
+      variables:
+        mode: int
+      then:
+        - boiler.set_mode:
+            id: boiler_cmd
+            mode: !lambda 'return mode;'
+            
+    - action: set_control_parameters
+      variables:
+        slope: float
+        shift: float
+        kp: float
+      then:
+        - climate.heat_curve.set_control_parameters:
+            id: boiler_climate
+            slope: !lambda 'return slope;'
+            shift: !lambda 'return shift;'
+            kp: !lambda 'return kp;'
+        - climate.heat_curve.reset_integral_term: boiler_climate
