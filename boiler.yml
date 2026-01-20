@@ -79,9 +79,11 @@ climate:
     output: boiler_cmd
 
     control_parameters:
-      slope: 1.45
+      slope: 1.8
       shift: 0.5
-      kp: 1.5
+      max_error: 0.5
+      kp: 1.2
+      ki: 0.2
     output_parameters:
       minimum_output: 0.1
       maximum_output: 1
@@ -98,7 +100,7 @@ climate:
 output:
   - platform: frisquet_boiler
     id: boiler_cmd
-    boiler_id: !secret boiler_id
+    boiler_id: F0A2
     pin:
       number: D6
 
