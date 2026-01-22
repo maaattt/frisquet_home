@@ -3,7 +3,7 @@ substitutions:
   name: "Frisquet Boiler"
   reboot_timeout: 14d
   update_interval: 60s
-  ota_password: "86d8d705bb585eaf7a68c592a025884c"
+  ota_password: ""
 
 esphome:
   name: ${device}
@@ -42,7 +42,7 @@ sensor:
     filters:
       - filter_out: nan
       - exponential_moving_average:
-          alpha: 0.3
+          alpha: 0.6
           send_every: 1
       - heartbeat: 60s
         
@@ -77,13 +77,11 @@ climate:
     outdoor_sensor: outdoor_temperature
     default_target_temperature: 19
     output: boiler_cmd
-
     control_parameters:
-      slope: 1.8
-      shift: 0.5
+      slope: 1.5
       max_error: 0.5
-      kp: 1.2
-      ki: 0.2
+      shift: 0
+      kp: 2
     output_parameters:
       minimum_output: 0.1
       maximum_output: 1
