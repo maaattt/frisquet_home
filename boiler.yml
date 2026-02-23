@@ -42,7 +42,7 @@ sensor:
     filters:
       - filter_out: nan
       - exponential_moving_average:
-          alpha: 0.6
+          alpha: 0.9
           send_every: 1
       - heartbeat: 60s
         
